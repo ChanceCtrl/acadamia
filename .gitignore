@@ -1,3 +1,5 @@
-cpe3500/.metadata
-cpe3500/lab1/.cache/clangd/index
+*/.metadata
+*/build
+*/.cache/clangd/index
+cpe3500/Lab1/.cache/clangd/index
 cpe3500/Lab1/build
