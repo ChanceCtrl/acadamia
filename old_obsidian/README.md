@@ -1,0 +1,3 @@
+This is my old obsidian vault that I used for school my freshmen year, as time went on, my notes got worse...
+
+And now I don't take any T-T

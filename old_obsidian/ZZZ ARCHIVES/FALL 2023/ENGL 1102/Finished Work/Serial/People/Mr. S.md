@@ -1,0 +1,2 @@
+#engl1102 
+Man who works at a school doing maintenance stuffs who found [[Hae Min Lee]]'s body at Linchone Park. And is a serial streaker. Why? Fuck if I know, not even like frat hazing just like freaky person type shit.

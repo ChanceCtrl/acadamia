@@ -1,0 +1,2 @@
+Summerization on [[Karl Marx]]'s views on capitalism:
+"It reduced the free worked to a virtual salve; it lowed his standard of living to the level of bare subsistence .. it destroyed family life and sapped the very foundations of society, mortality and public health. A small minority of ruthless exploiters (Buisness owers) could profit the most from it"
