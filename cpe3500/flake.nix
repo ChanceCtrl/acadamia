@@ -18,7 +18,7 @@
           ninja
           gdb
           openocd
-          python3
+          uv
         ];
 
         shellHook = ''
