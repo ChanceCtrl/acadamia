@@ -41,17 +41,15 @@ int main(void) {
       rect[n] = 0;
   }
 
-  // Expo signal
+  // // Expo signal
   for (n = 0; n < N; n++) {
     expon[n] = pow(a, (float)n);
   }
 
   // Sin signal
   for (n = 0; n < N; n++) {
-    sinus[n] = sin(w0 * (float)n);
+    sinus[n] = arm_sin_f32(w0 * (float)n);
   }
-
-  // HAL_UART_Transmit(&huart2, "Done.\n\r", sizeof("Done.\n\r"), 10000);
 }
 
 void SystemClock_Config(void) {
