@@ -7,16 +7,59 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 
-float b = 0.5;
-float rect[] = {1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-float output[20];
+#define Ns 20
+#define N 41
+#define FILTER_TAP_NUM 15
+
+static float filter_taps[FILTER_TAP_NUM] = {
+    -0.009898010171524554, -0.027914315139733272, -0.032432578254938546,
+    -0.010728297591680038, 0.05524117891696983,   0.14714346757690847,
+    0.23125034643202272,   0.26429855734529445,   0.23125034643202272,
+    0.14714346757690847,   0.05524117891696983,   -0.010728297591680038,
+    -0.032432578254938546, -0.027914315139733272, -0.009898010171524554};
+
+float rect[Ns], output[Ns];
+
+float a = 2.2;
+float b = -1.1;
+float b1 = 0.5;
+float c = 0.7;
+
+float sine1[N], sineComposite[N], sineFiltered[N];
+
+float f1 = 5;   // Sine Frequency 1
+float f2 = 28;  // Sine Frequency 2
+float f3 = 42;  // Sine Frequency 3
+float f4 = 33;  // Sine Frequency 4
+float fs = 100; // Sampling Frequency
 
 void system1(float input[], float output[], int size) {
   for (int n = 0; n < size; n++) {
     if (n == 0)
       output[n] = input[n];
     else
-      output[n] = input[n] + b * input[n - 1];
+      output[n] = input[n] + b1 * input[n - 1];
+  }
+}
+
+void convolution(float x[], float h[], float y[], int sizeX, int sizeH) {
+  int n, k;                  // variables for loops
+  int p = 0;                 // index variable for output signal y
+  float sum;                 // convolutions sum accumulator variable
+  int Low_lim = sizeH / 2;   // Start of pick N elements of the output array
+  int L = sizeX + sizeH - 1; // Original length of the convolution.
+
+  for (n = 0; n < L; n++) {
+    sum = 0;
+    for (k = 0; k < sizeX; k++)
+      if ((n - k) >= 0 && (n - k) < sizeH)
+        sum = sum + x[k] * h[n - k]; // Main convolution sum calculation
+
+    // Only pick center N elements of the output array!
+    if (n >= Low_lim && n < (Low_lim + N)) {
+      y[p] = sum;
+      p++;
+    }
   }
 }
 
@@ -27,6 +70,16 @@ int main(void) {
   MX_USART2_UART_Init();
 
   system1(rect, output, sizeof(rect));
+
+  // for (int n = 0; n < N; n++) {
+  //   sine1[n] = arm_sin_f32(f1 * n);
+  //   sineComposite[n] = arm_sin_f32(f1 * n) + arm_sin_f32(f2 * n) +
+  //                      arm_sin_f32(f3 * n) + arm_sin_f32(f4 * n);
+  // }
+  //
+  // convolution(sineComposite, filter_taps, sineFiltered,
+  // sizeof(sineComposite),
+  //             sizeof(filter_taps));
 
   while (1)
     ;
