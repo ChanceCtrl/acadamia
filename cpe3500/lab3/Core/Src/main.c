@@ -7,7 +7,6 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 
-#define Ns 20
 #define N 41
 #define FILTER_TAP_NUM 15
 
@@ -18,11 +17,8 @@ static float filter_taps[FILTER_TAP_NUM] = {
     0.14714346757690847,   0.05524117891696983,   -0.010728297591680038,
     -0.032432578254938546, -0.027914315139733272, -0.009898010171524554};
 
-float rect[Ns], output[Ns];
-
 float a = 2.2;
 float b = -1.1;
-float b1 = 0.5;
 float c = 0.7;
 
 float sine1[N], sineComposite[N], sineFiltered[N];
@@ -32,15 +28,6 @@ float f2 = 28;  // Sine Frequency 2
 float f3 = 42;  // Sine Frequency 3
 float f4 = 33;  // Sine Frequency 4
 float fs = 100; // Sampling Frequency
-
-void system1(float input[], float output[], int size) {
-  for (int n = 0; n < size; n++) {
-    if (n == 0)
-      output[n] = input[n];
-    else
-      output[n] = input[n] + b1 * input[n - 1];
-  }
-}
 
 void convolution(float x[], float h[], float y[], int sizeX, int sizeH) {
   int n, k;                  // variables for loops
@@ -69,17 +56,14 @@ int main(void) {
   MX_GPIO_Init();
   MX_USART2_UART_Init();
 
-  system1(rect, output, sizeof(rect));
+  for (int n = 0; n < N; n++) {
+    sine1[n] = arm_sin_f32(2 * PI * f1 * n / fs);
+    sineComposite[n] =
+        arm_sin_f32(2 * PI * f1 * n / fs) + arm_sin_f32(2 * PI * f2 * n / fs) +
+        arm_sin_f32(2 * PI * f3 * n / fs) + arm_sin_f32(2 * PI * f4 * n / fs);
+  }
 
-  // for (int n = 0; n < N; n++) {
-  //   sine1[n] = arm_sin_f32(f1 * n);
-  //   sineComposite[n] = arm_sin_f32(f1 * n) + arm_sin_f32(f2 * n) +
-  //                      arm_sin_f32(f3 * n) + arm_sin_f32(f4 * n);
-  // }
-  //
-  // convolution(sineComposite, filter_taps, sineFiltered,
-  // sizeof(sineComposite),
-  //             sizeof(filter_taps));
+  convolution(sineComposite, filter_taps, sineFiltered, N, FILTER_TAP_NUM);
 
   while (1)
     ;
