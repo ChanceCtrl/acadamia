@@ -7,12 +7,18 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 
-#define N 20
+float b = 0.5;
+float rect[] = {1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+float output[20];
 
-int n;
-int delta[N], step[N], rect[N];
-float expon[N], sinus[N], comp_sinus[N];
-float a = 0.8, w0 = PI / 4, w1 = PI / 8;
+void system1(float input[], float output[], int size) {
+  for (int n = 0; n < size; n++) {
+    if (n == 0)
+      output[n] = input[n];
+    else
+      output[n] = input[n] + b * input[n - 1];
+  }
+}
 
 int main(void) {
   HAL_Init();
@@ -20,20 +26,10 @@ int main(void) {
   MX_GPIO_Init();
   MX_USART2_UART_Init();
 
-  // Unit step signal
-  for (n = 0; n < N; n++) {
-    step[n] = 1; // ???
-  }
+  system1(rect, output, sizeof(rect));
 
-  // Expo signal
-  for (n = 0; n < N; n++) {
-    expon[n] = pow(a, ((float)n - 2));
-  }
-
-  // Sin signal
-  for (n = 0; n < N; n++) {
-    sinus[n] = arm_sin_f32(w0 * (float)n - 8);
-  }
+  while (1)
+    ;
 }
 
 void SystemClock_Config(void) {

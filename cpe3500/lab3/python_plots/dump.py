@@ -3,9 +3,8 @@ import gdb
 N = 20
 
 # Resolve addresses from symbols
-step = int(gdb.parse_and_eval("&step"))
-expon = int(gdb.parse_and_eval("&expon"))
-sinus = int(gdb.parse_and_eval("&sinus"))
+rect = int(gdb.parse_and_eval("&rect"))
+output = int(gdb.parse_and_eval("&output"))
 
 
 def read_int(addr):
@@ -18,12 +17,11 @@ def read_float(addr):
 
 
 with open("signals.csv", "w") as f:
-    f.write("n,delta,step,rect,expon,sinus\n")
+    f.write("n,rect,system1\n")
     for i in range(N):
-        s = read_int(step + i * 4)
-        e = read_float(expon + i * 4)
-        si = read_float(sinus + i * 4)
+        e = read_float(rect + i * 4)
+        si = read_float(output + i * 4)
 
-        f.write(f"{i},{s},{e},{si}\n")
+        f.write(f"{i},{e},{si}\n")
 
 print("\nSignals exported to signals.csv\n")
