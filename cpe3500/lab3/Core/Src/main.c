@@ -8,12 +8,42 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 
 #define N 20
+float rect[] = {1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+float b1 = 0.5;
+float output1[20];
+
+float a2 = 2.2;
+float b2 = -1.1;
+float c2 = 0.7;
+float output2[20];
+
+void system1(float input[], float output[], int size) {
+  for (int n = 0; n < size; n++) {
+    if (n == 0)
+      output[n] = input[n];
+    else
+      output[n] = input[n] + b1 * input[n - 1];
+  }
+}
+
+void system2(float input[], float output[], int size) {
+  for (int n = 0; n < size; n++) {
+    if (n == 0)
+      output[n] = a2 * input[n];
+    else
+      output[n] = a2 * input[n] + b2 * input[n - 1] + c2 * output[n - 1];
+  }
+}
 
 int main(void) {
   HAL_Init();
   SystemClock_Config();
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+
+  system1(rect, output1, N);
+  system2(rect, output2, N);
 
   while (1)
     ;
