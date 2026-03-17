@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define BUFFER_SIZE 80
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -46,7 +46,7 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint32_t val;
-float real_val;
+float values[40];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -103,10 +103,13 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  HAL_ADC_Start(&hadc1);
-	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-	  val = HAL_ADC_GetValue(&hadc1);
-	  HAL_Delay(100);
+	  for (int i = 0; i < 40; i ++) {
+		  HAL_ADC_Start(&hadc1);
+		  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+		  val = HAL_ADC_GetValue(&hadc1);
+		  values[i] = val * 0.000805860805861;
+		  HAL_Delay(50);
+	  }
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
