@@ -74,11 +74,25 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
   HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, BUFFER_SIZE);
 }
 
-void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {}
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {}
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
+  for (int i = 0; i < BUFFER_HALFSIZE; i++)
+    dac_buffer[i] = adc_buffer[i];
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+  HAL_ADC_Stop_DMA(&hadc1);
+
+  for (int i = BUFFER_HALFSIZE; i < BUFFER_SIZE; i++)
+    dac_buffer[i] = adc_buffer[i];
+
+  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer, BUFFER_SIZE,
+                    DAC_ALIGN_12B_R);
+}
 
 void HAL_DAC_ConvHalfCpltCallbackCh1(DAC_HandleTypeDef *hdac) {}
-void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {}
+void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
+  HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_1);
+}
 
 int main(void) {
   HAL_Init();
@@ -94,9 +108,6 @@ int main(void) {
   MX_USART2_UART_Init();
 
   HAL_TIM_Base_Start(&htim8);
-  HAL_ADC_Start_DMA(&hadc1, adc_buffer, BUFFER_SIZE);
-  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, dac_buffer, BUFFER_SIZE,
-                    DAC_ALIGN_12B_R);
 
   /* Infinite loop */
   while (1) {
@@ -386,19 +397,3 @@ void Error_Handler(void) {
   }
   /* USER CODE END Error_Handler_Debug */
 }
-#ifdef USE_FULL_ASSERT
-/**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
-void assert_failed(uint8_t *file, uint32_t line) {
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line
-     number, ex: printf("Wrong parameters value: file %s on line %d\r\n", file,
-     line) */
-  /* USER CODE END 6 */
-}
-#endif /* USE_FULL_ASSERT */
