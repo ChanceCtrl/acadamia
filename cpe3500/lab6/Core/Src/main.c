@@ -76,14 +76,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
   for (int i = 0; i < BUFFER_HALFSIZE; i++)
-    dac_buffer[i] = adc_buffer[i];
+    dac_buffer[BUFFER_HALFSIZE - i] = adc_buffer[i];
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
   HAL_ADC_Stop_DMA(&hadc1);
 
   for (int i = BUFFER_HALFSIZE; i < BUFFER_SIZE; i++)
-    dac_buffer[i] = adc_buffer[i];
+    dac_buffer[BUFFER_SIZE - i] = adc_buffer[i];
 
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer, BUFFER_SIZE,
                     DAC_ALIGN_12B_R);

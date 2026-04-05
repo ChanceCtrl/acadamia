@@ -1,18 +1,28 @@
-import pandas as pd
+import csv
 import matplotlib.pyplot as plt
-import numpy as np
 
-df = pd.read_csv("signals.csv")
+n = []
+adc = []
+dac = []
 
-plt.figure()
-plt.stem(df["n"], df["rect"], label="rect")
-plt.stem(df["n"], df["system1"], label="system1")
+with open("signals.csv", "r") as f:
+    reader = csv.DictReader(f)
+    for row in reader:
+        n.append(int(row["n"]))
+        adc.append(int(row["adc_buffer"]))
+        dac.append(int(row["dac_buffer"]))
 
-plt.xlabel("n")
-plt.ylabel("Amplitude")
-plt.title("DSP Signals from STM32 RAM")
+plt.figure(figsize=(10, 5))
+
+plt.plot(n, adc, label="ADC Buffer", linewidth=1)
+plt.plot(n, dac, label="DAC Buffer", linewidth=1)
+
+plt.xlabel("Sample Index")
+plt.ylabel("Value")
+plt.title("ADC vs DAC Signals")
+plt.ylim([2050, 4500])
 plt.legend()
-plt.grid()
-plt.xticks(range(0, 20, 1))
-plt.yticks([x / 10 for x in range(0, 20, 5)])
+plt.grid(True)
+
+plt.tight_layout()
 plt.show()
