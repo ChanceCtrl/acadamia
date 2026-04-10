@@ -1,3 +1,7 @@
 **/.metadata
 **/build
 **/.cache/clangd/index
+/cpe3500/lab7/Drivers
+/cpe3500/lab7/Middlewares
+/cpe3500/lab8/Drivers
+/cpe3500/lab8/Middlewares
