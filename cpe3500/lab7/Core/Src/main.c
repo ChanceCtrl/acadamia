@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "stm32f4xx_hal_adc.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -31,12 +32,12 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define BUFFER_HALFSIZE 1000
-#define BUFFER_SIZE 2000
-#define COS_TABLE_LEN 50
+// #define BUFFER_HALFSIZE 1000
+// #define BUFFER_SIZE 2000
+// #define COS_TABLE_LEN 50
 
-#define BUFFER_HALFSIZE_40k 1000
-#define BUFFER_SIZE_40k 2000
+#define BUFFER_SIZE_40k 20000
+#define BUFFER_HALFSIZE_40k 10000
 #define COS_TABLE_LEN_40k 100
 /* USER CODE END PD */
 
@@ -57,13 +58,13 @@ TIM_HandleTypeDef htim8;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-static int16_t cos_table[COS_TABLE_LEN] = {
-    32767,  32509,  31738,  30466,  28714,  26509,  23886,  20886,  17557,
-    13952,  10126,  6140,   2057,   -2057,  -6140,  -10126, -13952, -17557,
-    -20886, -23886, -26509, -28714, -30466, -31738, -32509, -32767, -32509,
-    -31738, -30466, -28714, -26509, -23886, -20886, -17557, -13952, -10126,
-    -6140,  -2057,  2057,   6140,   10126,  13952,  17557,  20886,  23886,
-    26509,  28714,  30466,  31738,  32509};
+// static int16_t cos_table[COS_TABLE_LEN] = {
+//     32767,  32509,  31738,  30466,  28714,  26509,  23886,  20886,  17557,
+//     13952,  10126,  6140,   2057,   -2057,  -6140,  -10126, -13952, -17557,
+//     -20886, -23886, -26509, -28714, -30466, -31738, -32509, -32767, -32509,
+//     -31738, -30466, -28714, -26509, -23886, -20886, -17557, -13952, -10126,
+//     -6140,  -2057,  2057,   6140,   10126,  13952,  17557,  20886,  23886,
+//     26509,  28714,  30466,  31738,  32509};
 
 static int16_t cos_table_40k[COS_TABLE_LEN_40k] = {
     32767,  32702,  32509,  32187,  31738,  31163,  30466,  29648,  28714,
@@ -79,11 +80,12 @@ static int16_t cos_table_40k[COS_TABLE_LEN_40k] = {
     26509,  27666,  28714,  29648,  30466,  31163,  31738,  32187,  32509,
     32702};
 
-uint16_t adc_buffer[BUFFER_SIZE];
-uint16_t dac_buffer[BUFFER_SIZE];
+// uint16_t adc_buffer[BUFFER_SIZE];
+// uint16_t dac_buffer[BUFFER_SIZE];
 
 uint16_t adc_buffer_40k[BUFFER_SIZE_40k];
 uint16_t dac_buffer_40k[BUFFER_SIZE_40k];
+uint16_t dac_buffer_40k_unprocessed[BUFFER_SIZE_40k];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,22 +102,22 @@ static void MX_TIM8_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void processBuffer(uint16_t *inBuffer, uint16_t *outBuffer, uint16_t size) {
-  int32_t x;
-  uint8_t gain = 2;
-  static uint16_t x_prev = 0;
-  uint8_t nFrames = size / COS_TABLE_LEN;
-  for (uint8_t fr = 0; fr < nFrames; fr++) {
-    for (uint8_t i = 0; i < COS_TABLE_LEN; i++) {
-      x = (int32_t)inBuffer[i + fr * COS_TABLE_LEN];
-      x = x - x_prev;
-      x = x * (int32_t)cos_table[i];
-      x = x >> (15 - gain);
-      outBuffer[i + fr * COS_TABLE_LEN] = (uint16_t)(x + 2048);
-      x_prev = inBuffer[i + fr * COS_TABLE_LEN];
-    }
-  }
-}
+// void processBuffer(uint16_t *inBuffer, uint16_t *outBuffer, uint16_t size) {
+//   int32_t x;
+//   uint8_t gain = 2;
+//   static uint16_t x_prev = 0;
+//   uint8_t nFrames = size / COS_TABLE_LEN;
+//   for (uint8_t fr = 0; fr < nFrames; fr++) {
+//     for (uint8_t i = 0; i < COS_TABLE_LEN; i++) {
+//       x = (int32_t)inBuffer[i + fr * COS_TABLE_LEN];
+//       x = x - x_prev;
+//       x = x * (int32_t)cos_table[i];
+//       x = x >> (15 - gain);
+//       outBuffer[i + fr * COS_TABLE_LEN] = (uint16_t)(x + 2048);
+//       x_prev = inBuffer[i + fr * COS_TABLE_LEN];
+//     }
+//   }
+// }
 
 void processBuffer_40k(uint16_t *inBuffer, uint16_t *outBuffer, uint16_t size) {
   int32_t x;
@@ -135,18 +137,26 @@ void processBuffer_40k(uint16_t *inBuffer, uint16_t *outBuffer, uint16_t size) {
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
-  processBuffer(&adc_buffer[0], &dac_buffer[0], BUFFER_HALFSIZE);
+  // processBuffer(&adc_buffer[0], &dac_buffer[0], BUFFER_HALFSIZE);
 
-  // processBuffer_40k(&adc_buffer_40k[0], &dac_buffer_40k[0],
-  //                   BUFFER_HALFSIZE_40k);
+  processBuffer_40k(&adc_buffer_40k[0], &dac_buffer_40k[0],
+                    BUFFER_HALFSIZE_40k);
+
+  for (int i = 0; i < BUFFER_HALFSIZE_40k; i++)
+    dac_buffer_40k_unprocessed[i] = adc_buffer_40k[i];
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-  processBuffer(&adc_buffer[BUFFER_HALFSIZE], &dac_buffer[BUFFER_HALFSIZE],
-                BUFFER_HALFSIZE);
+  // processBuffer(&adc_buffer[BUFFER_HALFSIZE], &dac_buffer[BUFFER_HALFSIZE],
+  //               BUFFER_HALFSIZE);
 
-  // processBuffer_40k(&adc_buffer[BUFFER_HALFSIZE_40k],
-  //                   &dac_buffer[BUFFER_HALFSIZE_40k], BUFFER_HALFSIZE_40k);
+  processBuffer_40k(&adc_buffer_40k[BUFFER_HALFSIZE_40k],
+                    &dac_buffer_40k[BUFFER_HALFSIZE_40k], BUFFER_HALFSIZE_40k);
+
+  for (int i = BUFFER_HALFSIZE_40k; i < BUFFER_SIZE_40k; i++)
+    dac_buffer_40k_unprocessed[i] = adc_buffer_40k[i];
+
+  HAL_ADC_Stop_DMA(&hadc1);
 }
 
 int main(void) {
@@ -163,14 +173,15 @@ int main(void) {
   MX_USART2_UART_Init();
 
   HAL_TIM_Base_Start(&htim8);
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, BUFFER_SIZE);
-  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer, BUFFER_SIZE,
-                    DAC_ALIGN_12B_R);
 
-  // HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer_40k,
-  //                   BUFFER_SIZE_40k, DAC_ALIGN_12B_R);
+  // HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, BUFFER_SIZE);
+  // HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer,
+  // BUFFER_SIZE,
+  //                   DAC_ALIGN_12B_R);
 
-  HAL_TIM_Base_Start(&htim8);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer_40k, BUFFER_SIZE_40k);
+  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer_40k,
+                    BUFFER_SIZE_40k, DAC_ALIGN_12B_R);
 
   /* Infinite loop */
   while (1) {
