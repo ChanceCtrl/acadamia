@@ -48,13 +48,14 @@
 /* USER CODE BEGIN PV */
 float32_t input_signal[FFT_LENGTH];
 float32_t output_fft[FFT_LENGTH];
-float32_t output_fft_mag[FFT_LENGTH / 2];
+float32_t input_fft_mag[FFT_LENGTH / 2];
+float32_t filtered_fft_mag[FFT_LENGTH / 2];
 float32_t output_freq[FFT_LENGTH / 2];
 arm_rfft_fast_instance_f32 fft_handler;
 float32_t filtered_signal[FFT_LENGTH];
 float32_t State[N_TAPS + N_BLOCK - 1];
 
-static float32_t filter_taps[N_TAPS] = {
+static float32_t Coeffs[N_TAPS] = {
     -0.004344147732779473,  -0.009168771306895345,  -0.009724726663831892,
     -0.014577553983187346,  -0.014952323254611453,  -0.014925558361240522,
     -0.01026561726418485,   -0.0024817460791642034, 0.010003390455751927,
@@ -94,24 +95,29 @@ int main(void) {
   MX_GPIO_Init();
 
   arm_rfft_fast_init_f32(&fft_handler, FFT_LENGTH);
-  arm_fir_init_f32(&filter1, N_TAPS, &filter_taps[0], &State[0], N_BLOCK);
+  arm_fir_init_f32(&filter1, N_TAPS, &Coeffs[0], &State[0], N_BLOCK);
 
   for (int i = 0; i < FFT_LENGTH; i++)
-    input_signal[i] = arm_cos_f32(2 * PI * 400 * i / SAMPLING_RATE);
+    input_signal[i] = arm_cos_f32(2 * PI * 400 * i / SAMPLING_RATE) +
+                      arm_cos_f32(2 * PI * 3140 * i / SAMPLING_RATE);
+
+  for (int i = 0; i < FFT_LENGTH / 2; i++)
+    output_freq[i] = (float32_t)(i) / FFT_LENGTH * SAMPLING_RATE;
 
   for (int i = 0; i < (FFT_LENGTH / N_BLOCK); i++) {
     arm_fir_f32(&filter1, &input_signal[i * N_BLOCK],
                 &filtered_signal[i * N_BLOCK], N_BLOCK);
   }
 
-  // for (int i = 0; i < FFT_LENGTH / 2; i++)
-  //   output_freq[i] = (float32_t)(i) / FFT_LENGTH * SAMPLING_RATE;
-  //
   // arm_rfft_fast_f32(&fft_handler, input_signal, output_fft, 0);
-  // arm_cmplx_mag_f32(output_fft, output_fft_mag, FFT_LENGTH / 2);
+  // arm_cmplx_mag_f32(output_fft, input_fft_mag, FFT_LENGTH / 2);
+  //
+  // arm_rfft_fast_f32(&fft_handler, filtered_signal, output_fft, 0);
+  // arm_cmplx_mag_f32(output_fft, filtered_fft_mag, FFT_LENGTH / 2);
 
   /* Infinite loop */
   while (1) {
+    HAL_Delay(1000);
   }
 }
 
