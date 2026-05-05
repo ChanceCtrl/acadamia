@@ -1,43 +1,75 @@
 import csv
-import matplotlib.pyplot as plt
 
-n = []
-in1 = []
-in2 = []
-in3 = []
+import matplotlib.pyplot as plt
+import numpy as np
+
+Fs = 20000  # 20 kHz sampling rate
+
+adc = []
+dac = []
 
 with open("signals.csv", "r") as f:
     reader = csv.DictReader(f)
     for row in reader:
-        n.append(int(row["n"]))
-        in1.append(float(row["adc_buffer"]))
+        adc.append(int(row["adc_buffer_40k"]))
+        dac.append(int(row["dac_buffer_40k"]))
 
-with open("signals_2.csv", "r") as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        # n.append(int(row["n"]))
-        # in1.append(float(row["input_signal"]))
-        in2.append(float(row["output_freq"]))
-        in3.append(float(row["output_fft_mag"]))
+adc = np.array(adc, dtype=float)
+dac = np.array(dac, dtype=float)
 
-fig, axs = plt.subplots(1, 2, sharex=True, sharey=True)
+# Get Time
+N = len(adc)
+time = np.arange(N) / Fs
 
-axs[0].plot(in2, in3, label="output_fft_mag", linewidth=1)
-axs[0].plot()
-# axs[0].xlabel("Hz")
-# axs[0].ylabel("Value")
-axs[0].set_title("Freq vs FFT Magnitude")
-axs[0].legend()
-axs[0].grid(True)
+# Remove DC offset
+adc = adc - np.mean(adc)
+dac = dac - np.mean(dac)
 
 
-axs[1].plot(n, in1, label="input_signal", linewidth=1)
-# axs[1].xlabel("N")
-# axs[1].ylabel("Value")
-axs[1].set_title("Input Magnitude")
-axs[1].legend()
-axs[1].grid(True)
+def calculate_fft(signal, fs):
+    N = len(signal)
+    fft_vals = np.fft.fft(signal)
+    freqs = np.fft.fftfreq(N, 1 / fs)
 
-fig.tight_layout()
+    half = N // 2
+    return freqs[:half], np.abs(fft_vals[:half])
+
+
+plt.figure()
+plt.plot(time, adc, linewidth=1)
+plt.grid(True)
+plt.xlabel("Time [sec.]")
+plt.ylabel("Amplitude")
+plt.title("Captured Audio Signal (Original)")
+
+# FFT original
+freq, spectrum = calculate_fft(adc, Fs)
+
+plt.figure()
+plt.plot(freq, spectrum, linewidth=1)
+plt.grid(True)
+plt.xlabel("Frequency [Hz]")
+plt.ylabel("Magnitude")
+plt.title("Frequency Response of Original Signal")
+
+dac_trim = dac[2:]
+time_trim = time[2:]
+
+plt.figure()
+plt.plot(time_trim, dac_trim, linewidth=1)
+plt.grid(True)
+plt.xlabel("Time [sec.]")
+plt.ylabel("Amplitude")
+plt.title("Captured Audio Signal with Alien Effect")
+
+# FFT processed
+freq2, spectrum2 = calculate_fft(dac_trim, Fs)
+
+plt.figure()
+plt.plot(freq2, spectrum2, linewidth=1)
+plt.grid(True)
+plt.xlabel("Frequency [Hz]")
+plt.ylabel("Magnitude")
+plt.title("Frequency Response (Alien Effect)")
 
 plt.show()

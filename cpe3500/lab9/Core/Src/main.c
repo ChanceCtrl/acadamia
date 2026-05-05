@@ -1,123 +1,62 @@
-/* USER CODE BEGIN Header */
-/**
- ******************************************************************************
- * @file           : main.c
- * @brief          : Main program body
- ******************************************************************************
- * @attention
- *
- * Copyright (c) 2026 STMicroelectronics.
- * All rights reserved.
- *
- * This software is licensed under terms that can be found in the LICENSE file
- * in the root directory of this software component.
- * If no LICENSE file comes with this software, it is provided AS-IS.
- *
- ******************************************************************************
- */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "arm_math.h"
+#include "stm32f4xx_hal_adc.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+#define BUFFER_SIZE 10000
+#define BUFFER_HALFSIZE 5000
 
-/* USER CODE END Includes */
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
+DAC_HandleTypeDef hdac;
+DMA_HandleTypeDef hdma_dac1;
 
-/* USER CODE END PTD */
+TIM_HandleTypeDef htim8;
 
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-#define FFT_LENGTH 2048
-#define SAMPLING_RATE 16384
+uint16_t adc_buffer[BUFFER_SIZE];
+uint16_t dac_buffer[BUFFER_SIZE];
 
-#define N_TAPS 32
-#define N_BLOCK 32
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-/* USER CODE BEGIN PV */
-float32_t input_signal[FFT_LENGTH];
-float32_t output_fft[FFT_LENGTH];
-float32_t input_fft_mag[FFT_LENGTH / 2];
-float32_t filtered_fft_mag[FFT_LENGTH / 2];
-float32_t output_freq[FFT_LENGTH / 2];
-arm_rfft_fast_instance_f32 fft_handler;
-float32_t filtered_signal[FFT_LENGTH];
-float32_t State[N_TAPS + N_BLOCK - 1];
-
-static float32_t Coeffs[N_TAPS] = {
-    -0.004344147732779473,  -0.009168771306895345,  -0.009724726663831892,
-    -0.014577553983187346,  -0.014952323254611453,  -0.014925558361240522,
-    -0.01026561726418485,   -0.0024817460791642034, 0.010003390455751927,
-    0.025902379839063516,   0.04482221705027414,    0.06486658161749063,
-    0.08440325053709288,    0.10127458250446596,    0.11374001867323824,
-    0.12034176639902075,    0.12034176639902075,    0.11374001867323824,
-    0.10127458250446596,    0.08440325053709288,    0.06486658161749063,
-    0.04482221705027414,    0.025902379839063516,   0.010003390455751927,
-    -0.0024817460791642034, -0.01026561726418485,   -0.014925558361240522,
-    -0.014952323254611453,  -0.014577553983187346,  -0.009724726663831892,
-    -0.009168771306895345,  -0.004344147732779473};
-
-arm_fir_instance_f32 filter1;
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-/* USER CODE BEGIN PFP */
+static void MX_DMA_Init(void);
+static void MX_ADC1_Init(void);
+static void MX_DAC_Init(void);
+static void MX_TIM8_Init(void);
 
-/* USER CODE END PFP */
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
+  // processBuffer(&adc_buffer[0], &dac_buffer[0], BUFFER_HALFSIZE);
 
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-/* USER CODE END 0 */
+  for (int i = 0; i < BUFFER_HALFSIZE; i++)
+    dac_buffer[i] = adc_buffer[i];
+}
 
-/**
- * @brief  The application entry point.
- * @retval int
- */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+  // processBuffer(&adc_buffer[BUFFER_HALFSIZE], &dac_buffer[BUFFER_HALFSIZE],
+  //               BUFFER_HALFSIZE);
+
+  for (int i = BUFFER_HALFSIZE; i < BUFFER_SIZE; i++)
+    dac_buffer[i] = adc_buffer[i];
+}
+
 int main(void) {
   HAL_Init();
 
   SystemClock_Config();
 
-  /* Initialize all configured peripherals */
+  // Initialize all configured peripherals
   MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_TIM8_Init();
+  MX_ADC1_Init();
+  MX_DAC_Init();
 
-  arm_rfft_fast_init_f32(&fft_handler, FFT_LENGTH);
-  arm_fir_init_f32(&filter1, N_TAPS, &Coeffs[0], &State[0], N_BLOCK);
+  // Start the peripherals
+  HAL_TIM_Base_Start(&htim8);
 
-  for (int i = 0; i < FFT_LENGTH; i++)
-    input_signal[i] = arm_cos_f32(2 * PI * 400 * i / SAMPLING_RATE) +
-                      arm_cos_f32(2 * PI * 3140 * i / SAMPLING_RATE);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, BUFFER_SIZE);
+  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer, BUFFER_SIZE,
+                    DAC_ALIGN_12B_R);
 
-  for (int i = 0; i < FFT_LENGTH / 2; i++)
-    output_freq[i] = (float32_t)(i) / FFT_LENGTH * SAMPLING_RATE;
-
-  for (int i = 0; i < (FFT_LENGTH / N_BLOCK); i++) {
-    arm_fir_f32(&filter1, &input_signal[i * N_BLOCK],
-                &filtered_signal[i * N_BLOCK], N_BLOCK);
-  }
-
-  // arm_rfft_fast_f32(&fft_handler, input_signal, output_fft, 0);
-  // arm_cmplx_mag_f32(output_fft, input_fft_mag, FFT_LENGTH / 2);
-  //
-  // arm_rfft_fast_f32(&fft_handler, filtered_signal, output_fft, 0);
-  // arm_cmplx_mag_f32(output_fft, filtered_fft_mag, FFT_LENGTH / 2);
-
-  /* Infinite loop */
   while (1) {
-    HAL_Delay(1000);
   }
 }
 
@@ -166,6 +105,151 @@ void SystemClock_Config(void) {
 }
 
 /**
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_ADC1_Init(void) {
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data
+   * Alignment and number of conversion)
+   */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T8_TRGO;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK) {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in
+   * the sequencer and its sample time.
+   */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+}
+
+/**
+ * @brief DAC Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_DAC_Init(void) {
+
+  /* USER CODE BEGIN DAC_Init 0 */
+
+  /* USER CODE END DAC_Init 0 */
+
+  DAC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN DAC_Init 1 */
+
+  /* USER CODE END DAC_Init 1 */
+
+  /** DAC Initialization
+   */
+  hdac.Instance = DAC;
+  if (HAL_DAC_Init(&hdac) != HAL_OK) {
+    Error_Handler();
+  }
+
+  /** DAC channel OUT1 config
+   */
+  sConfig.DAC_Trigger = DAC_TRIGGER_T8_TRGO;
+  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+  if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1) != HAL_OK) {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN DAC_Init 2 */
+
+  /* USER CODE END DAC_Init 2 */
+}
+
+/**
+ * @brief TIM8 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM8_Init(void) {
+
+  /* USER CODE BEGIN TIM8_Init 0 */
+
+  /* USER CODE END TIM8_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM8_Init 1 */
+
+  /* USER CODE END TIM8_Init 1 */
+  htim8.Instance = TIM8;
+  htim8.Init.Prescaler = 83;
+  htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim8.Init.Period = 49;
+  htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim8.Init.RepetitionCounter = 0;
+  htim8.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim8) != HAL_OK) {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim8, &sClockSourceConfig) != HAL_OK) {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim8, &sMasterConfig) != HAL_OK) {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM8_Init 2 */
+
+  /* USER CODE END TIM8_Init 2 */
+}
+
+/**
+ * Enable DMA controller clock
+ */
+static void MX_DMA_Init(void) {
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+}
+
+/**
  * @brief GPIO Initialization Function
  * @param None
  * @retval None
@@ -191,14 +275,6 @@ static void MX_GPIO_Init(void) {
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA2 PA3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
   /*Configure GPIO pin : LD2_Pin */
   GPIO_InitStruct.Pin = LD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -214,10 +290,6 @@ static void MX_GPIO_Init(void) {
 
   /* USER CODE END MX_GPIO_Init_2 */
 }
-
-/* USER CODE BEGIN 4 */
-
-/* USER CODE END 4 */
 
 /**
  * @brief  This function is executed in case of error occurrence.

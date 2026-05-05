@@ -3,23 +3,25 @@ import csv
 import matplotlib.pyplot as plt
 
 n = []
-in1 = []
+adc = []
+dac = []
 
 with open("signals.csv", "r") as f:
     reader = csv.DictReader(f)
     for row in reader:
         n.append(int(row["n"]))
-        in1.append(float(row["adc_buffer"]))
+        adc.append(int(row["adc_buffer_40k"]))
+        dac.append(int(row["dac_buffer_40k"]))
 
 plt.figure(figsize=(10, 5))
 
-plt.plot(n, in1, label="Input 1", linewidth=1)
+# plt.plot(n, adc, label="Unprocessed Buffer", linewidth=1)
+plt.plot(n, dac, label="Processed Buffer", linewidth=1)
 
 plt.xlabel("Sample Index")
 plt.ylabel("Value")
-plt.title("ADC vs DAC Signals")
-plt.xlim([0, 2048])
-plt.ylim([-2, 2])
+plt.title("Processed over N Sample")
+plt.ylim([500, 4000])
 plt.legend()
 plt.grid(True)
 
