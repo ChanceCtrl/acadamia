@@ -1,5 +1,6 @@
 #include "main.h"
 #include "stm32f4xx_hal_adc.h"
+#include "stm32f4xx_hal_dac.h"
 
 #define BUFFER_SIZE 10000
 #define BUFFER_HALFSIZE 5000
@@ -23,18 +24,26 @@ static void MX_DAC_Init(void);
 static void MX_TIM8_Init(void);
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
-  // processBuffer(&adc_buffer[0], &dac_buffer[0], BUFFER_HALFSIZE);
-
   for (int i = 0; i < BUFFER_HALFSIZE; i++)
     dac_buffer[i] = adc_buffer[i];
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-  // processBuffer(&adc_buffer[BUFFER_HALFSIZE], &dac_buffer[BUFFER_HALFSIZE],
-  //               BUFFER_HALFSIZE);
-
   for (int i = BUFFER_HALFSIZE; i < BUFFER_SIZE; i++)
     dac_buffer[i] = adc_buffer[i];
+
+  HAL_ADC_Stop_DMA(&hadc1);
+
+  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer, BUFFER_SIZE,
+                    DAC_ALIGN_12B_R);
+}
+
+void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
+  HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_1);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, BUFFER_SIZE);
 }
 
 int main(void) {
@@ -51,10 +60,6 @@ int main(void) {
 
   // Start the peripherals
   HAL_TIM_Base_Start(&htim8);
-
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, BUFFER_SIZE);
-  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer, BUFFER_SIZE,
-                    DAC_ALIGN_12B_R);
 
   while (1) {
   }
