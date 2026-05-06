@@ -1,9 +1,30 @@
 #include "main.h"
+#include "arm_math.h"
 #include "stm32f4xx_hal_adc.h"
 #include "stm32f4xx_hal_dac.h"
+#include "stm32f4xx_hal_uart.h"
+#include <stdio.h>
 
+#define FFT_LENGTH 2048
 #define BUFFER_SIZE 10000
 #define BUFFER_HALFSIZE 5000
+#define SAMPLING_RATE 20000
+#define FREQ_WIGGLE 15
+
+uint16_t adc_buffer[BUFFER_SIZE];
+float32_t adc_float[FFT_LENGTH];
+uint16_t dac_buffer[BUFFER_SIZE];
+
+uint8_t beep_tone[] = {128, 176, 218, 245, 255, 245, 218, 176,
+                       128, 80,  38,  11,  0,   11,  38,  80};
+uint8_t password[] = {4, 5, 6, 2};
+uint8_t input_buffer[sizeof(password)];
+uint8_t input_buffer_index = 0;
+
+float32_t output_fft[FFT_LENGTH];
+float32_t input_fft_mag[FFT_LENGTH / 2];
+float32_t output_freq[FFT_LENGTH / 2];
+arm_rfft_fast_instance_f32 fft_handler;
 
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
@@ -13,8 +34,7 @@ DMA_HandleTypeDef hdma_dac1;
 
 TIM_HandleTypeDef htim8;
 
-uint16_t adc_buffer[BUFFER_SIZE];
-uint16_t dac_buffer[BUFFER_SIZE];
+UART_HandleTypeDef huart2;
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -22,29 +42,98 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_DAC_Init(void);
 static void MX_TIM8_Init(void);
+static void MX_USART2_UART_Init(void);
 
-void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
-  for (int i = 0; i < BUFFER_HALFSIZE; i++)
-    dac_buffer[i] = adc_buffer[i];
-}
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-  for (int i = BUFFER_HALFSIZE; i < BUFFER_SIZE; i++)
-    dac_buffer[i] = adc_buffer[i];
-
-  HAL_ADC_Stop_DMA(&hadc1);
+void play_evil_sound() {
+  for (int i = 0; i < (BUFFER_SIZE); i++)
+    dac_buffer[i] = beep_tone[(i / 10) % sizeof(beep_tone)] * 200;
 
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer, BUFFER_SIZE,
                     DAC_ALIGN_12B_R);
+}
+
+void play_good_sound() {
+  for (int i = 0; i < (BUFFER_SIZE); i++)
+    dac_buffer[i] = beep_tone[i % sizeof(beep_tone)] * 150;
+
+  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *)dac_buffer, BUFFER_SIZE,
+                    DAC_ALIGN_12B_R);
+}
+
+void check_code() {
+  input_buffer_index = 0;
+
+  for (int i = 0; i < sizeof(password); i++) {
+    if (input_buffer[i] != password[i]) {
+      play_evil_sound();
+      return;
+    }
+  }
+
+  play_good_sound();
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+  for (int i = 0; i < FFT_LENGTH; i++) {
+    adc_float[i] = (float32_t)adc_buffer[i];
+  }
+
+  arm_rfft_fast_f32(&fft_handler, adc_float, output_fft, 0);
+  arm_cmplx_mag_f32(output_fft, input_fft_mag, FFT_LENGTH / 2);
+
+  float32_t highest_amp = 0.0f;
+  int max_index = 0;
+  int next_max_index = 0;
+
+  // Find peak
+  for (int i = 1; i < FFT_LENGTH / 2; i++) { // skip DC
+    if (input_fft_mag[i] > highest_amp) {
+      next_max_index = max_index;
+      max_index = i;
+
+      highest_amp = input_fft_mag[i];
+    }
+  }
+
+  // Convert bin index to frequency
+  float32_t f1 = ((float32_t)max_index * SAMPLING_RATE) / FFT_LENGTH;
+  float32_t f2 = ((float32_t)next_max_index * SAMPLING_RATE) / FFT_LENGTH;
+
+  if (highest_amp > 50000) {
+    int has_697 =
+        (fabsf(f1 - 697) < FREQ_WIGGLE) || (fabsf(f2 - 697) < FREQ_WIGGLE);
+    int has_1209 =
+        (fabsf(f1 - 1209) < FREQ_WIGGLE) || (fabsf(f2 - 1209) < FREQ_WIGGLE);
+    int has_1336 =
+        (fabsf(f1 - 1336) < FREQ_WIGGLE) || (fabsf(f2 - 1336) < FREQ_WIGGLE);
+    int has_1477 =
+        (fabsf(f1 - 1477) < FREQ_WIGGLE) || (fabsf(f2 - 1477) < FREQ_WIGGLE);
+    int has_1633 =
+        (fabsf(f1 - 1633) < FREQ_WIGGLE) || (fabsf(f2 - 1633) < FREQ_WIGGLE);
+
+    char buff[64];
+    int len = sprintf(buff, "Amp: %i\tFreq 1: %i\tFreq 2: %i\n",
+                      (int)highest_amp, (int)f1, (int)f2);
+    HAL_UART_Transmit(&huart2, (uint8_t *)buff, len, 10);
+
+    if (has_697) {
+      if (has_1209)
+        HAL_UART_Transmit(&huart2, (uint8_t *)"Got a 1!\n", 9, 10);
+      else if (has_1336)
+        HAL_UART_Transmit(&huart2, (uint8_t *)"Got a 2!\n", 9, 10);
+      else if (has_1477)
+        HAL_UART_Transmit(&huart2, (uint8_t *)"Got a 3!\n", 9, 10);
+      else if (has_1633)
+        HAL_UART_Transmit(&huart2, (uint8_t *)"Got a A!\n", 9, 10);
+    }
+  }
 }
 
 void HAL_DAC_ConvCpltCallbackCh1(DAC_HandleTypeDef *hdac) {
   HAL_DAC_Stop_DMA(hdac, DAC_CHANNEL_1);
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, BUFFER_SIZE);
-}
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) { check_code(); }
 
 int main(void) {
   HAL_Init();
@@ -57,9 +146,16 @@ int main(void) {
   MX_TIM8_Init();
   MX_ADC1_Init();
   MX_DAC_Init();
+  MX_USART2_UART_Init();
 
   // Start the peripherals
+  HAL_UART_Init(&huart2);
+
   HAL_TIM_Base_Start(&htim8);
+
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, BUFFER_SIZE);
+
+  arm_rfft_fast_init_f32(&fft_handler, FFT_LENGTH);
 
   while (1) {
   }
@@ -234,6 +330,36 @@ static void MX_TIM8_Init(void) {
   /* USER CODE BEGIN TIM8_Init 2 */
 
   /* USER CODE END TIM8_Init 2 */
+}
+
+/**
+ * @brief USART2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_USART2_UART_Init(void) {
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK) {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 }
 
 /**
