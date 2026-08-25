@@ -194,6 +194,9 @@ int main(void) {
 
   arm_rfft_fast_init_f32(&fft_handler, FFT_LENGTH);
 
+  for (int i = 0; i < FFT_LENGTH / 2; i++)
+    output_freq[i] = (float32_t)(i) / FFT_LENGTH * SAMPLING_RATE;
+
   while (1) {
     if (go_check_code) {
       go_check_code = 0;
