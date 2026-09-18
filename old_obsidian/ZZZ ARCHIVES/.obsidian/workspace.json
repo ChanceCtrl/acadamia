@@ -1,0 +1,226 @@
+{
+  "main": {
+    "id": "eeb6d89194c021cb",
+    "type": "split",
+    "children": [
+      {
+        "id": "001e631d426d058c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "755e8b01fcd2c33e",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "2026 FALL/MATH 2345/Unit 1/Set Theory Defs.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Set Theory Defs"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "bb27792a6782137e",
+    "type": "split",
+    "children": [
+      {
+        "id": "5de4eef2288177cb",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "809b5a3410028be8",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "a5b21189a825e5b6",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "363739ca902da186",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "281390aa3a90fa7f",
+    "type": "split",
+    "children": [
+      {
+        "id": "0d537b29e7cb8160",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "6ee8aa0bd7fa8614",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "2026 FALL/MATH 2345/Unit 1/Good examples.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "cd90826a5c2405bf",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "2026 FALL/MATH 2345/Unit 1/Good examples.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "44131bfa50e0dd61",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "c5da4a038d011c6d",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "4f1c60d2605eeea6",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "2026 FALL/MATH 2345/Unit 1/Good examples.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "755e8b01fcd2c33e",
+  "lastOpenFiles": [
+    "2026 FALL/MATH 2345/Unit 1/Properties of Sets.md",
+    "2026 FALL/MATH 2345/Unit 1/Set Theory Defs.md",
+    "2026 FALL/MATH 2345/Unit 1/Good examples.md",
+    "2026 FALL/MATH 2345/Discrete Mathematics.md",
+    "2026 FALL/MATH 2345/Unit 1/Day 2.md",
+    "2026 FALL/MATH 2345/Unit 1/Day 1.md",
+    "2026 FALL/ENGR 4402/Unit 1/Code of ethics.md",
+    "Ink/Drawing/2026.9.1 - 15.52pm.svg",
+    "2026 FALL/ENGR 4402/Engineering Ethics.md",
+    "2026 FALL/ENGR 4402/Unit 1",
+    "2026 FALL/MATH 2345/imgs/Pasted image 20260901175423.png",
+    "Ink/Drawing/2026.9.1 - 17.21pm.svg",
+    "2026 FALL/MATH 2345/imgs/Pasted image 20260901170801.png",
+    "2026 FALL/MATH 2345/imgs/Pasted image 20260901170450.png",
+    "2026 FALL/MATH 2345/imgs/Pasted image 20260901170520.png",
+    "Pasted image 20260901170516.png",
+    "2026 FALL/MATH 2345/imgs/Pasted image 20260901170539.png",
+    "2026 FALL/MATH 2345/imgs/Pasted image 20260901170148.png",
+    "2026 FALL/MATH 2345/imgs",
+    "2026 FALL/MATH 2345/imgs/Pasted image 20260901163159.png",
+    "2026 FALL/MATH 2345/Unit 1",
+    "2026 FALL/CPE 4903/Neural Networks & Machine Learning.md",
+    "Ink/Drawing",
+    "Ink",
+    "2026 FALL/STS 1101/Science, Technology & Society.md",
+    "Untitled.md",
+    "2026 FALL/ENGR 4901/Senior Design 1.md",
+    "2026 FALL/ENGR 4901",
+    "2026 FALL/CPE 4903",
+    "2026 FALL/ENGR 4402",
+    "2026 FALL/STS 1101",
+    "2026 FALL/MATH 2345"
+  ]
+}

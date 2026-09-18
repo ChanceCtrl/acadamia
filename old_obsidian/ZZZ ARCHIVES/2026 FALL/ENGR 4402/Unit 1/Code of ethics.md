@@ -1,0 +1,2 @@
+- Engineers shall hold the safety, health and welfare of the public
+- Engineers shall avoid conduct or practice that deceives the public
